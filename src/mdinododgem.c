@@ -444,8 +444,12 @@ int theOptions[];
 
 POSITION DoMove(thePosition, theMove)
 POSITION thePosition;
+
 MOVE theMove; {
 	BlankOX theBlankOX[boardsize], whosTurn;
+// 	POSITION newPosition;
+	DinoUnhash(thePosition, theBlankOX);
+	
 	int nextplayer;
 	int from, to;
 	/* Unhash. */
@@ -1392,30 +1396,53 @@ BlankOX getwhosTurnfromMove(MOVE theMove) {
 }
 
 POSITION InteractStringToPosition(STRING board) {
+	enum UWAPI_Turn turn;
+	unsigned int num_rows, num_columns; // Unused
+	STRING board;
+	if (!UWAPI_Board_Regular2D_ParsePositionString(str, &turn, &num_rows, &num_columns, &board)) {
+		// Failed to parse string
+		return INVALID_POSITION;
+	}
+	
 	BlankOX realBoard[boardsize];
 	int i = 0;
 	for (i = 0; i < boardsize; i++) {
 		realBoard[i] = board[i];
 
 	}
-	return generic_hash_hash(realBoard,0);
+// 	return generic_hash_hash(realBoard,0);
+	return DinoUnhash(realBoard);
 }
 
 STRING InteractPositionToString(POSITION pos) {
 	BlankOX board[boardsize];
+	DinoUnhash(position, board);
+	
 	int i = 0;
 	generic_hash_unhash(pos, &board);
 	char* finalBoard = calloc((boardsize+1), sizeof(char));
 	for (i = 0; i < boardsize; i++) {
 		finalBoard[i] = board[i];
 	}
-	return finalBoard;
+// 	return finalBoard;
+	
+	board[boardsize] = '\0'; // Make sure to null-terminate your board.
+
+	enum UWAPI_Turn turn = (whoseTurn(finalBoard) == h) ? UWAPI_TURN_A : UWAPI_TURN_B;
+	return UWAPI_Board_Regular2D_MakeBoardString(turn, 16, board);
 }
 
 STRING InteractPositionToEndData(POSITION pos) {
 	return NULL;
 }
 
+BOOLEAN arrow = TRUE;
 STRING InteractMoveToString(POSITION pos, MOVE mv) {
-	return MoveToString(mv);
+	SLOT fromSlot, toSlot;
+	MoveToSlots(mv, &fromSlot, &toSlot);
+	if (arrow) {
+		return UWAPI_Board_Regular2D_MakeMoveString(fromSlot, toSlot);
+	} else {
+		return UWAPI_Board_Regular2D_MakeAddString('-', toSlot);
+	}
 }
